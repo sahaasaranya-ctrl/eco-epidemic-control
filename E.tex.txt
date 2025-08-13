@@ -1,0 +1,37 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+# Neutrosophic triplets for each parameter
+u = np.array([0.45, 0.3, 0.25])
+v = np.array([0.212, 0.4, 0.388])
+rho = np.array([0.09, 0.2, 0.1])
+omega = np.array([0.005, 0.2, 0.1])
+k2 = np.array([850, 0, 0])  # Assuming k2 is crisp for now
+
+# Range of w_T from 0.1 to 1.0
+w_T = np.linspace(0.1, 1.0, 100)
+w_I = 0.3 * (1 - w_T) / 0.7
+w_F = 0.2 * (1 - w_T) / 0.7
+
+# Compute WTIF projection
+def wtif(p, wt, wi, wf):
+    return wt * p[0] + wi * p[1] + wf * p[2]
+
+# Calculate R0^N for each weight set
+R0_vals = []
+for wt, wi, wf in zip(w_T, w_I, w_F):
+    num = wtif(u, wt, wi, wf) * wtif(k2, wt, wi, wf)
+    denom = wtif(v, wt, wi, wf) + wtif(rho, wt, wi, wf) + wtif(omega, wt, wi, wf)
+    R0_vals.append(num / denom)
+
+# Plotting
+plt.figure(figsize=(8,5))
+plt.plot(w_T, R0_vals, color='teal', linewidth=2)
+plt.axhline(y=1, color='r', linestyle='--', label='$R_0^N = 1$')
+plt.title('Variation of Neutrosophic Reproduction Number $R_0^N$ with $w_T$')
+plt.xlabel('Truth Weight $w_T$')
+plt.ylabel('$R_0^N$')
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()

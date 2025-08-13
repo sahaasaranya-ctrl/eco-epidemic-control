@@ -1,0 +1,91 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from numpy.linalg import eigvals
+
+# === 1. Parameter definitions ===
+r = 0.236
+q = 0.05
+k1 = 0.45
+k2 = 0.9
+u = 0.450
+v = 0.212
+Omega = 0.005
+rho = 0.09
+alpha = 0.236
+b = 0.23
+beta = 0.545
+eta = 0.1
+e = 0.5
+w = 1.0  # predator reproduction via Yi
+
+def denom(Ys, X):
+    return 1e-6 + 1.0 + b * Ys * beta + X  # prevent division by zero
+
+# === 2. Jacobian computation ===
+def compute_jacobian(X, Ys, Yi, Z):
+    D = denom(Ys, X)
+    dD_dYs = b * beta
+    dD_dX = 1.0
+
+    J = np.zeros((4, 4))
+
+    # dX/dt partials
+    J[0, 0] = r * (1 - 2 * X / k1) - (alpha * Z * (D - X)) / (D ** 2)
+    J[0, 1] = -alpha * X * Z * dD_dYs / (D ** 2)
+    J[0, 2] = Omega
+    J[0, 3] = -alpha * X / D
+
+    # dYs/dt partials
+    J[1, 0] = 0
+    J[1, 1] = q * (1 - 2 * Ys / k2) - u * Yi
+    J[1, 2] = -u * Ys
+    J[1, 3] = 0
+
+    # dYi/dt partials
+    J[2, 0] = 0
+    J[2, 1] = u * Yi
+    J[2, 2] = u * Ys - v * Z - (1 - 1) * Omega - rho
+    J[2, 3] = -v * Yi
+
+    # dZ/dt partials
+    J[3, 0] = -eta * Z / D + eta * X * Z / (D ** 2)
+    J[3, 1] = -eta * X * Z * dD_dYs / (D ** 2)
+    J[3, 2] = w * Z
+    J[3, 3] = w * Yi - eta * X / D - e
+
+    return J
+
+# === 3. Define equilibrium points ===
+def eval_point(X, Ys, Yi, Z):
+    return np.array([X, Ys, Yi, Z])
+
+equilibria = {
+    "F1 (Trivial)": eval_point(0, 0, 0, 0),
+    "F2 (Ys-only)": eval_point(0, k2, 0, 0),
+    "F3 (X-only)": eval_point(k1, 0, 0, 0),
+    "F4": eval_point((-alpha * e) / (e - eta), 0, 0, e / eta),
+    "F5 (X,Ys)": eval_point(k1, k2, 0, 0),
+    "F6 (X,Ys,Z)": eval_point(0.4, k2, 0, 0.5),
+    "F9 (All positive)": eval_point(0.35, 0.85, 0.05, 0.45)
+}
+
+# === 4. Plot eigenvalue spectra ===
+fig, axs = plt.subplots(2, 4, figsize=(16, 8))
+axs = axs.flatten()
+
+for idx, (label, point) in enumerate(equilibria.items()):
+    J = compute_jacobian(*point)
+    eigs = eigvals(J)
+    axs[idx].scatter(eigs.real, eigs.imag, c='darkblue', s=40)
+    axs[idx].axhline(0, color='gray', linestyle='--', linewidth=0.7)
+    axs[idx].axvline(0, color='gray', linestyle='--', linewidth=0.7)
+    axs[idx].set_title(f'{label}', fontsize=9)
+    axs[idx].set_xlabel('Re(λ)')
+    axs[idx].set_ylabel('Im(λ)')
+    axs[idx].grid(True)
+    axs[idx].set_xlim(-2, 2)
+    axs[idx].set_ylim(-1, 1)
+
+plt.suptitle("Eigenvalue Spectra and Stability of Equilibrium Points", fontsize=14)
+plt.tight_layout()
+plt.show()
